@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เกมทำซูชิ</title>
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500&family=Prompt:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FFF8DC; --y1:#FFE066; --y2:#FFD54F; --y3:#FFC107;
+    --pink:#FFC8DD; --pink-d:#FF9EBB; --ink:#6b4a1e; --white:#fffdf6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:'Prompt','Mitr',system-ui,sans-serif;color:var(--ink);
+    background:linear-gradient(160deg,#FFF8DC 0%,#FFF0B3 45%,#FFE9A0 100%);
+    background-attachment:fixed;overflow:hidden;min-height:100vh;
+  }
+  #bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .floater{position:absolute;opacity:.5;animation:bob 6s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-22px) rotate(6deg)}}
+
+  .screen{
+    position:fixed;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;
+    padding:14px;overflow-y:auto;transition:opacity .6s ease, transform .6s ease;
+  }
+  .screen.hidden{opacity:0;pointer-events:none;transform:scale(.94) translateY(14px)}
+  .card{
+    width:min(94vw,440px);margin:auto;background:var(--white);border:5px solid var(--y1);
+    border-radius:36px;padding:22px 20px 26px;text-align:center;position:relative;
+    box-shadow:0 14px 34px rgba(255,193,7,.28), 0 4px 0 #ffe9a3, inset 0 0 0 4px #fff5cf;
+  }
+  .card::before,.card::after{content:"";position:absolute;width:26px;height:26px;border-radius:50%;background:var(--pink);opacity:.8}
+  .card::before{top:-12px;left:28px}
+  .card::after{bottom:-12px;right:28px;background:var(--y2)}
+  h1{font-family:'Mitr',sans-serif;font-weight:500;font-size:1.7rem;margin:6px 0 10px}
+  .mascot{width:120px;height:120px;margin:0 auto;animation:bob 4s ease-in-out infinite;display:block}
+  .mascot.big{width:150px;height:150px}
+  .mascot.jump{animation:jump .6s ease}
+  @keyframes jump{0%,100%{transform:translateY(0)}40%{transform:translateY(-34px) scale(1.08)}}
+
+  .btn{
+    font-family:'Mitr',sans-serif;font-size:1.05rem;cursor:pointer;border:none;
+    padding:13px 26px;border-radius:999px;color:#5a3d10;transition:transform .15s, box-shadow .15s;
+  }
+  .btn-main{
+    margin-top:12px;width:100%;background:linear-gradient(180deg,var(--y1),var(--y2));
+    box-shadow:0 5px 0 #e6a800, 0 10px 18px rgba(255,193,7,.35);
+  }
+  .btn-main:hover{transform:translateY(-2px)}
+  .btn-main:active{transform:translateY(3px);box-shadow:0 2px 0 #e6a800}
+  .intro{line-height:1.7;font-size:1rem}
+
+  /* ---- game ---- */
+  .hud{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+  .score{font-family:'Mitr',sans-serif;font-size:1rem;white-space:nowrap}
+  .bar{flex:1;height:16px;border-radius:999px;background:#fff1bf;border:3px solid var(--y1);overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--pink-d),var(--y3));transition:width .5s ease}
+  .order{
+    background:#fff6d2;border:3px dashed var(--y2);border-radius:22px;padding:8px 10px;margin:4px 0 10px;
+    font-family:'Mitr',sans-serif;font-size:1.15rem;
+  }
+  .order small{display:block;font-family:'Prompt',sans-serif;font-size:.85rem;color:#9a7a3a}
+  .steps{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .chip{
+    padding:4px 12px;border-radius:999px;font-size:.92rem;font-family:'Prompt',sans-serif;
+    background:#fff;border:2px solid var(--y1);color:#9a7a3a;transition:all .25s;
+  }
+  .chip.done{background:var(--pink);border-color:var(--pink-d);color:#7a3b55;transform:scale(1.05)}
+  .chip.next{border-color:var(--y3);box-shadow:0 0 0 3px rgba(255,213,79,.4)}
+
+  .plate{
+    position:relative;height:118px;width:230px;margin:2px auto 10px;
+    display:flex;flex-direction:column-reverse;align-items:center;justify-content:flex-start;padding-bottom:18px;
+  }
+  .plate::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:34px;border-radius:50%;
+    background:#fff;border:4px solid var(--y1);z-index:0;box-shadow:0 5px 0 #f0d27a;
+  }
+  .layer{
+    position:relative;z-index:1;height:20px;border-radius:12px;margin-bottom:-2px;
+    border:2px solid rgba(0,0,0,.12);animation:drop .35s cubic-bezier(.2,1.6,.4,1);
+  }
+  @keyframes drop{from{transform:translateY(-40px) scale(.7);opacity:0}to{transform:none;opacity:1}}
+  .plate.served{animation:serve .6s ease forwards}
+  @keyframes serve{to{transform:translateX(120%) rotate(12deg);opacity:0}}
+  .plate.oops{animation:shake .5s}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-12px)}40%{transform:translateX(12px)}60%{transform:translateX(-8px)}80%{transform:translateX(8px)}}
+
+  .tray{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .ing{
+    font-family:'Mitr',sans-serif;font-size:.95rem;cursor:pointer;border:3px solid var(--y1);
+    background:#fffef8;color:var(--ink);border-radius:22px;padding:8px 2px;
+    box-shadow:0 4px 0 #f0d27a;transition:transform .12s, box-shadow .12s;
+  }
+  .ing span{display:block;font-size:1.7rem;line-height:1.2}
+  .ing:hover{transform:translateY(-2px)}
+  .ing:active{transform:translateY(3px);box-shadow:0 1px 0 #f0d27a}
+  .msg{min-height:1.5em;margin-top:10px;font-weight:500;color:#d6537c}
+
+  /* ---- proposal (same as proposal.html) ---- */
+  .q{font-size:2.1rem}
+  .actions{display:flex;flex-direction:column;gap:14px;align-items:center;margin-top:18px;min-height:120px}
+  .btn-yes{
+    background:linear-gradient(180deg,#ffd6e5,var(--pink-d));
+    box-shadow:0 5px 0 #e57a9f, 0 10px 18px rgba(255,158,187,.4);animation:pulse 1.6s ease-in-out infinite;
+  }
+  .btn-yes:hover{transform:scale(1.06)}
+  @keyframes pulse{50%{transform:scale(1.05)}}
+  .btn-no{background:#fff;border:3px solid var(--y1);color:#9a7a3a;box-shadow:0 4px 0 #f0d27a;z-index:50}
+  .btn-no.fleeing{position:fixed;transition:left .18s ease, top .18s ease}
+  .success{display:none}
+  .success.show{display:block;animation:pop .6s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+  .success p{font-family:'Mitr',sans-serif;font-size:1.5rem;line-height:1.5;margin-top:6px}
+  .fall{position:fixed;top:-40px;z-index:100;pointer-events:none;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(112vh) rotate(360deg);opacity:.9}}
+
+  #musicBtn{
+    position:fixed;top:14px;right:14px;z-index:200;width:46px;height:46px;border-radius:50%;
+    border:3px solid var(--y1);background:var(--white);font-size:1.3rem;cursor:pointer;display:none;
+    box-shadow:0 4px 12px rgba(255,193,7,.35);transition:transform .15s;
+  }
+  #musicBtn:hover{transform:scale(1.1)}
+  #yt{position:fixed;width:1px;height:1px;left:-10px;top:-10px;opacity:0;pointer-events:none}
+  @media (prefers-reduced-motion:reduce){.floater,.mascot,.btn-yes{animation:none}}
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+<div id="yt"><div id="player"></div></div>
+<button id="musicBtn" aria-label="toggle music">🔊</button>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="chick" viewBox="0 0 200 200">
+      <path d="M100 52 C98 36 100 28 102 22" stroke="#7bc47f" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M102 24 C116 10 134 16 130 32 C118 36 106 32 102 24Z" fill="#9be09f" stroke="#6fba74" stroke-width="3" stroke-linejoin="round"/>
+      <ellipse cx="78" cy="176" rx="16" ry="8" fill="#ffb347"/>
+      <ellipse cx="122" cy="176" rx="16" ry="8" fill="#ffb347"/>
+      <ellipse cx="100" cy="112" rx="68" ry="64" fill="#FFE066" stroke="#E8B92C" stroke-width="4"/>
+      <ellipse cx="100" cy="132" rx="42" ry="34" fill="#FFF3B8" opacity=".85"/>
+      <ellipse cx="34" cy="118" rx="14" ry="22" fill="#FFD54F" stroke="#E8B92C" stroke-width="3" transform="rotate(18 34 118)"/>
+      <ellipse cx="166" cy="118" rx="14" ry="22" fill="#FFD54F" stroke="#E8B92C" stroke-width="3" transform="rotate(-18 166 118)"/>
+      <circle cx="75" cy="106" r="8" fill="#4a3216"/>
+      <circle cx="125" cy="106" r="8" fill="#4a3216"/>
+      <circle cx="78" cy="103" r="2.8" fill="#fff"/>
+      <circle cx="128" cy="103" r="2.8" fill="#fff"/>
+      <ellipse cx="58" cy="126" rx="12" ry="8" fill="#FFB3CB" opacity=".9"/>
+      <ellipse cx="142" cy="126" rx="12" ry="8" fill="#FFB3CB" opacity=".9"/>
+      <path d="M90 118 Q100 112 110 118 Q100 134 90 118Z" fill="#FF9F43" stroke="#e5812b" stroke-width="2" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- Screen 1: start -->
+<section id="start" class="screen">
+  <div class="card">
+    <svg class="mascot big" viewBox="0 0 200 200"><use href="#chick"/></svg>
+    <h1>เกมทำซูชิ 🍣</h1>
+    <p class="intro">วันนี้เธอเป็นเชฟซูชิ!<br>ทำตามออร์เดอร์ให้ถูกลำดับ<br>ครบ 3 จาน แล้วจะมีเซอร์ไพรส์รออยู่นะ 💛</p>
+    <button class="btn btn-main" id="startBtn">เริ่มทำซูชิ</button>
+  </div>
+</section>
+
+<!-- Screen 2: game -->
+<section id="game" class="screen hidden">
+  <div class="card">
+    <div class="hud">
+      <svg class="mascot" id="gMascot" viewBox="0 0 200 200" style="width:74px;height:74px;margin:0"><use href="#chick"/></svg>
+      <div class="bar"><i id="barFill"></i></div>
+      <div class="score" id="score">0/3</div>
+    </div>
+    <div class="order">
+      <small>ออร์เดอร์ที่ <span id="oNum">1</span></small>
+      <span id="oName"></span>
+      <div class="steps" id="steps"></div>
+    </div>
+    <div class="plate" id="plate"></div>
+    <div class="tray" id="tray"></div>
+    <div class="msg" id="msg"></div>
+  </div>
+</section>
+
+<!-- Screen 3: proposal -->
+<section id="proposal" class="screen hidden">
+  <div class="card">
+    <svg class="mascot big" viewBox="0 0 200 200"><use href="#chick"/></svg>
+    <div id="askBlock">
+      <h1 class="q">เป็นแฟนกันมั้ย</h1>
+      <div class="actions" id="actions">
+        <button class="btn btn-yes" id="yesBtn">ยอมรับการเป็นแฟน</button>
+        <button class="btn btn-no" id="noBtn">ไม่ยอมรับ</button>
+      </div>
+    </div>
+    <div class="success" id="success"><p>เย้! เป็นแฟนกันแล้วนะ! 💛🐰</p></div>
+  </div>
+</section>
+
+<script>
+const $ = id => document.getElementById(id);
+
+/* ---------- floating background ---------- */
+(function(){
+  const bg = $('bg');
+  for(let i=0;i<11;i++){
+    const s = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    s.setAttribute('viewBox','0 0 200 200');
+    s.innerHTML = '<use href="#chick"/>';
+    const size = 50 + Math.random()*70;
+    s.classList.add('floater');
+    s.style.width = s.style.height = size+'px';
+    s.style.left = (Math.random()*92)+'%';
+    s.style.top = (Math.random()*90)+'%';
+    s.style.animationDuration = (4+Math.random()*5)+'s';
+    s.style.animationDelay = (-Math.random()*6)+'s';
+    bg.appendChild(s);
+  }
+})();
+
+/* ---------- music ---------- */
+const MUSIC_URL = 'https://www.youtube.com/watch?v=MdXzNIS1a_I';
+const VIDEO_ID = (MUSIC_URL.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/) || [])[1] || MUSIC_URL;
+let ytPlayer = null, ytReady = false, wantPlay = false, muted = false;
+const tag = document.createElement('script');
+tag.src = 'https://www.youtube.com/iframe_api';
+document.head.appendChild(tag);
+window.onYouTubeIframeAPIReady = function(){
+  ytPlayer = new YT.Player('player',{
+    width:'200', height:'200', videoId:VIDEO_ID,
+    playerVars:{autoplay:0,controls:0,loop:1,playlist:VIDEO_ID,playsinline:1,rel:0},
+    events:{
+      onReady:()=>{ ytReady = true; if(wantPlay) startMusic(); },
+      onStateChange:e=>{ if(e.data===YT.PlayerState.ENDED) ytPlayer.playVideo(); }
+    }
+  });
+};
+function startMusic(){
+  if(!ytReady){ wantPlay = true; return; }
+  try{ ytPlayer.unMute(); ytPlayer.setVolume(60); ytPlayer.playVideo(); }catch(e){}
+}
+/* ถ้าเพลงยังไม่เล่น (เช่น เบราว์เซอร์บล็อก หรือโหลดช้า) ให้ลองเล่นใหม่ทุกครั้งที่แตะหน้าจอ */
+function ensureMusic(){
+  if(!wantPlay || !ytReady || muted) return;
+  try{
+    if(ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) startMusic();
+  }catch(e){}
+}
+document.addEventListener('pointerdown', ensureMusic);
+$('musicBtn').addEventListener('click',()=>{
+  if(!ytReady) return;
+  muted = !muted;
+  if(muted){ ytPlayer.mute(); $('musicBtn').textContent='🔇'; }
+  else { ytPlayer.unMute(); ytPlayer.playVideo(); $('musicBtn').textContent='🔊'; }
+});
+
+/* ---------- game data ---------- */
+const ING = {
+  rice:   {name:'ข้าว',     emoji:'🍚', color:'#fffdf2', w:170, h:22},
+  nori:   {name:'สาหร่าย',  emoji:'🌿', color:'#3f5a45', w:182, h:12},
+  salmon: {name:'แซลมอน',   emoji:'🐟', color:'#ff9a76', w:190, h:20},
+  tuna:   {name:'ทูน่า',    emoji:'🐠', color:'#e5566d', w:186, h:20},
+  egg:    {name:'ไข่หวาน',  emoji:'🥚', color:'#ffd54f', w:178, h:22},
+  cucumber:{name:'แตงกวา',  emoji:'🥒', color:'#9be09f', w:150, h:14}
+};
+const RECIPES = [
+  {name:'แซลมอนซูชิ 🍣', steps:['rice','salmon']},
+  {name:'มากิสาหร่าย 🍙', steps:['nori','rice','tuna']},
+  {name:'ไข่หวานซูชิ 🥚', steps:['rice','egg','nori']},
+  {name:'มากิแตงกวา 🥒', steps:['nori','rice','cucumber']},
+  {name:'ทูน่าซูชิ 🍣', steps:['rice','tuna']}
+];
+const GOAL = 3;
+let order = [], cur = 0, pos = 0, done = 0, busy = false;
+
+function buildTray(){
+  const t = $('tray');
+  t.innerHTML = '';
+  Object.keys(ING).forEach(k=>{
+    const b = document.createElement('button');
+    b.className = 'ing';
+    b.innerHTML = '<span>'+ING[k].emoji+'</span>'+ING[k].name;
+    b.addEventListener('click',()=>pick(k));
+    t.appendChild(b);
+  });
+}
+function newOrder(){
+  if(!order.length){
+    order = RECIPES.slice().sort(()=>Math.random()-.5);
+  }
+  cur = order.pop();
+  pos = 0; busy = false;
+  $('oNum').textContent = done+1;
+  $('oName').textContent = cur.name;
+  $('plate').className = 'plate';
+  $('plate').innerHTML = '';
+  renderSteps();
+  setMsg('');
+}
+function renderSteps(){
+  $('steps').innerHTML = cur.steps.map((s,i)=>{
+    const c = i<pos ? 'chip done' : i===pos ? 'chip next' : 'chip';
+    return '<span class="'+c+'">'+ING[s].emoji+' '+ING[s].name+'</span>';
+  }).join('<span>➔</span>');
+}
+function setMsg(t){ $('msg').textContent = t; }
+function jumpMascot(){
+  const m = $('gMascot');
+  m.classList.remove('jump'); void m.getBoundingClientRect(); m.classList.add('jump');
+}
+function pick(k){
+  if(busy) return;
+  const plate = $('plate');
+  if(k === cur.steps[pos]){
+    const d = document.createElement('div');
+    d.className = 'layer';
+    d.style.cssText = 'width:'+ING[k].w+'px;height:'+ING[k].h+'px;background:'+ING[k].color;
+    plate.appendChild(d);
+    pos++;
+    renderSteps();
+    if(pos === cur.steps.length) finishDish();
+    else setMsg('');
+  } else {
+    plate.classList.remove('oops'); void plate.offsetWidth; plate.classList.add('oops');
+    setMsg('อุ๊ย ผิดลำดับ! เริ่มจานใหม่นะ~ 🐰');
+    busy = true;
+    setTimeout(()=>{ plate.classList.remove('oops'); plate.innerHTML=''; pos=0; busy=false; renderSteps(); }, 650);
+  }
+}
+function finishDish(){
+  busy = true;
+  done++;
+  $('score').textContent = done+'/'+GOAL;
+  $('barFill').style.width = (done/GOAL*100)+'%';
+  jumpMascot();
+  setMsg(done<GOAL ? 'เก่งมาก! เสิร์ฟแล้ว 💛' : 'ครบแล้ว! เก่งที่สุดเลย ✨');
+  setTimeout(()=>$('plate').classList.add('served'), 500);
+  setTimeout(()=>{
+    if(done>=GOAL) goProposal(); else newOrder();
+  }, 1300);
+}
+function goProposal(){
+  $('game').classList.add('hidden');
+  $('proposal').classList.remove('hidden');
+}
+
+$('startBtn').addEventListener('click',()=>{
+  wantPlay = true; startMusic();
+  let tries = 0;
+  const retry = setInterval(()=>{ ensureMusic(); if(++tries > 12) clearInterval(retry); }, 500);
+  $('musicBtn').style.display = 'block';
+  $('start').classList.add('hidden');
+  $('game').classList.remove('hidden');
+  buildTray(); newOrder();
+});
+
+/* ---------- runaway button ---------- */
+const noBtn = $('noBtn');
+function flee(e){
+  if(e){ e.preventDefault(); e.stopPropagation(); }
+  const w = noBtn.offsetWidth, h = noBtn.offsetHeight, pad = 12;
+  const maxX = Math.max(pad, window.innerWidth - w - pad);
+  const maxY = Math.max(pad, window.innerHeight - h - pad);
+  noBtn.classList.add('fleeing');
+  noBtn.style.left = (pad + Math.random()*(maxX-pad)) + 'px';
+  noBtn.style.top  = (pad + Math.random()*(maxY-pad)) + 'px';
+}
+['mouseenter','mouseover','pointerenter','touchstart','pointerdown','mousedown'].forEach(ev=>{
+  noBtn.addEventListener(ev, flee, {passive:false});
+});
+noBtn.addEventListener('click', flee);
+noBtn.addEventListener('focus', ()=>{ noBtn.blur(); flee(); });
+
+/* ---------- accept ---------- */
+$('yesBtn').addEventListener('click',()=>{
+  $('askBlock').style.display = 'none';
+  noBtn.style.display = 'none';
+  $('success').classList.add('show');
+  celebrate();
+});
+function celebrate(){
+  const items = ['💛','💖','🌟','💗','✨','🌼'];
+  const colors = ['#FFE066','#FFD54F','#FFC8DD','#FF9EBB','#fff'];
+  let n = 0;
+  const timer = setInterval(()=>{
+    for(let i=0;i<4;i++){
+      const el = document.createElement('div');
+      el.className = 'fall';
+      if(Math.random()<.7){
+        el.textContent = items[Math.floor(Math.random()*items.length)];
+        el.style.fontSize = (18+Math.random()*26)+'px';
+      } else {
+        el.style.width = '10px'; el.style.height = '14px';
+        el.style.background = colors[Math.floor(Math.random()*colors.length)];
+        el.style.borderRadius = '2px';
+      }
+      el.style.left = Math.random()*100+'vw';
+      el.style.animationDuration = (2.6+Math.random()*2.6)+'s';
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(), 5500);
+    }
+    if(++n > 70) clearInterval(timer);
+  }, 90);
+}
+</script>
+</body>
+</html>
